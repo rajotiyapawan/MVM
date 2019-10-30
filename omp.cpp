@@ -142,15 +142,6 @@ int main(int argc, char* args[])
 
 	printf("OpenMP matrix-vector multiplication program\n");
 
-	/*while(Size<=0){
-		printf("\nEnter the size of the initial objects: ");
-		scanf("%d", &Size);
-		//printf("\nChosen objects size = %d\n", Size);
-		if(Size <=0){
-			printf("\nSize of objects must be greater than 0!\n");
-		}
-	}*/
-
 	pMatrix = new double[ro*col];
 	pVector = new double[ro];
 	pResult = new double[col];
@@ -161,7 +152,7 @@ int main(int argc, char* args[])
 
 	//printf("%d",Size);
 
-	PrintMatrix(pMatrix, ro, col);
+
 	start = clock();
 		SerialCal(pMatrix, pVector, pResult, ro, col);
 		finish = clock();
@@ -176,6 +167,9 @@ int main(int argc, char* args[])
 		duration = (finish-start)/CLOCKS_PER_SEC;
 		printf("\nTime of Row Execution:%f\n", duration);
 		printf("\nSpeedup: %f\n",stime/duration);
+		PrintMatrix(pMatrix, ro, col);
+		ResultVector(pResult, col);
+		PrintVector(pVector, ro);
 	}
 	else if(atoi(args[1])==2){
 		start = clock();
@@ -184,6 +178,9 @@ int main(int argc, char* args[])
 		duration = (finish-start)/CLOCKS_PER_SEC;
 		printf("\nTime of Column Execution:%f\n", duration);
 		printf("\nSpeedup: %f\n",stime/duration);
+		PrintMatrix(pMatrix, ro, col);
+		ResultVector(pResult, col);
+		PrintVector(pVector, ro);
 	}
 	else if(atoi(args[1])==3){
 		start = clock();
@@ -192,14 +189,44 @@ int main(int argc, char* args[])
 		duration = (finish-start)/CLOCKS_PER_SEC;
 		printf("\nTime of Checkrboard Execution:%f\n", duration);
 		printf("\nSpeedup: %f\n",stime/duration);
+		PrintMatrix(pMatrix, ro, col);
+		ResultVector(pResult, col);
+		PrintVector(pVector, ro);
 	}
-	else if(atoi(args[1])==0){}
+	else if(atoi(args[1])==0){
+		/*ofstream out("omp_r.txt");
+		for(int i=1; i<=16;i=2*i){
+			start = clock();
+			RowCal(pMatrix, pVector, pResult, ro, col);
+			finish = clock();
+			duration = (finish-start)/CLOCKS_PER_SEC;
+			out << i <<" "<< stime/duration;
+		}
+		out.close();
+		ofstream out1("omp_c.txt");
+		for(int i=1; i<=16;i=2*i){
+			start = clock();
+			ColCal(pMatrix, pVector, pResult, ro, col);
+			finish = clock();
+			duration = (finish-start)/CLOCKS_PER_SEC;
+			out1 << i <<" "<< stime/duration;
+		}
+		out1.close();
+		ofstream out2("omp_ch.txt");
+		for(int i=1; i<=16;i=2*i){
+			start = clock();
+			ChCal(pMatrix, pVector, pResult, ro, col);
+			finish = clock();
+			duration = (finish-start)/CLOCKS_PER_SEC;
+			out2 << i <<" "<< stime/duration;
+		}
+		out2.close();*/
+	}
 
 	//printf("\nTime of Execution:%f\n", duration);
 
 
-	ResultVector(pResult, col);
-	PrintVector(pVector, ro);
+	
 
 	return 0;
 }
