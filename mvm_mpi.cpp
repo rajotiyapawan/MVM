@@ -16,21 +16,21 @@ void DummyDataInitialization(double* pMatrix, double* pVector, int rows, int col
 	}
 }
 
-void RandomDataInitialization(double* pMatrix, double* pVector, int Size){
+void RandomDataInitialization(double* pMatrix, double* pVector, int ro, int col){
 	int i, j;
 	srand(clock());
-	for(i=0; i<Size; i++){//printf("hello\n");
-		pVector[i] = rand()/1000;//printf("pVector\n");
-		for(j=0; j<Size; j++){
-			pMatrix[i*Size+j] = rand()/1000;//printf("%7.4f\n",pMatrix[i*Size+j]);
+	for(i=0; i<ro; i++){//printf("hello\n");
+		pVector[i] = rand()/1000000;//printf("pVector\n");
+		for(j=0; j<col; j++){
+			pMatrix[i*col+j] = rand()/1000000;//printf("%7.4f\n",pMatrix[i*Size+j]);
 		}
 	}
 }
 
-void ProcessInitialization(double* &pMatrix, double* &pVector, double* &pResult, double* &pProcRows, double* &pProcResult, int &Size, int &RowNum){
+void ProcessInitialization(double* &pMatrix, double* &pVector, double* &pResult, double* &pProcRows, double* &pProcResult, int &ro, int &col, int &RowNum){
 	int RestRows;
 	int i;
-	setvbuf(stdout, 0, _IONBF, 0);
+	/*setvbuf(stdout, 0, _IONBF, 0);
 	if(ProcRank==0){
 		do{
 			printf("\nEnter the size of the matrix and vector: ");
@@ -39,46 +39,48 @@ void ProcessInitialization(double* &pMatrix, double* &pVector, double* &pResult,
 				printf("Size of the objects must be greater than the processes!\n");
 			}
 		}while(Size<ProcNum);
-	}
-	MPI_Bcast(&Size, 1, MPI_INT, 0, MPI_COMM_WORLD);
-	RestRows = Size;
+	}*/
+	MPI_Bcast(&ro, 1, MPI_INT, 0, MPI_COMM_WORLD);
+	MPI_Bcast(&col, 1, MPI_INT, 0, MPI_COMM_WORLD);
+
+	RestRows = ro;
 	for(i=0; i<ProcRank; i++){
 		RestRows = RestRows - RestRows/(ProcNum-i);
 	}
 		RowNum = RestRows/(ProcNum-ProcRank);
 		//}
-		pVector = new double[Size];
-		pResult = new double[Size];
-		pProcRows = new double[RowNum*Size];//printf("Rownum is %d\n",RowNum);
+		pVector = new double[ro];
+		pResult = new double[col];
+		pProcRows = new double[RowNum*col];//printf("Rownum is %d\n",RowNum);
 		pProcResult = new double[RowNum];
 
 	//}
 
 		if(ProcRank==0){
-			pMatrix = new double[Size*Size];
-			RandomDataInitialization(pMatrix, pVector, Size);
+			pMatrix = new double[ro*col];
+			RandomDataInitialization(pMatrix, pVector, ro, col);
 		}
 	//}
 
 }
 
-void DataDistribution(double* pMatrix, double* pProcRows, double* pVector, int Size, int RowNum){
+void DataDistribution(double* pMatrix, double* pProcRows, double* pVector, int ro, int col, int RowNum){
 	int *pSendNum;
 	int *pSendInd;
-	int RestRows=Size;
-	MPI_Bcast(pVector, Size, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+	int RestRows=ro;
+	MPI_Bcast(pVector, ro, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
 	pSendInd = new int [ProcNum];
 	pSendNum = new int [ProcNum];
 
-	RowNum = (Size/ProcNum);
-	pSendNum[0] = RowNum*Size;//printf("%d\n",pSendNum[0]);
+	RowNum = (ro/ProcNum);
+	pSendNum[0] = RowNum*col;//printf("%d\n",pSendNum[0]);
 	pSendInd[0] = 0;
 
 	for(int i=1; i<ProcNum; i++){//printf("done\n");
 		RestRows -= RowNum;
 		RowNum = RestRows/(ProcNum-i);
-		pSendNum[i] = RowNum*Size;//printf("\nhello %d\n",pSendNum[i]);
+		pSendNum[i] = RowNum*col;//printf("\nhello %d\n",pSendNum[i]);
 		pSendInd[i] = pSendInd[i-1]+pSendNum[i-1];//printf("\nhello\n");
 	}
 
@@ -92,18 +94,18 @@ void DataDistribution(double* pMatrix, double* pProcRows, double* pVector, int S
 	delete [] pSendInd;
 }
 
-void ResultReplication(double* pProcResult, double* pResult, int Size, int RowNum){
+void ResultReplication(double* pProcResult, double* pResult, int ro, int col, int RowNum){
 	int *pReceiveNum;
 	int *pReceiveInd;
 
-	int RestRows = Size;
+	int RestRows = ro;
 	int i;
 
 	pReceiveNum = new int [ProcNum];
 	pReceiveInd = new int [ProcNum];
 
 	pReceiveInd[0] = 0;
-	pReceiveNum[0] = Size/ProcNum;
+	pReceiveNum[0] = ro/ProcNum;
 
 	for(i=1; i<ProcNum; i++){
 		RestRows -= pReceiveNum[i-1];
@@ -117,22 +119,22 @@ void ResultReplication(double* pProcResult, double* pResult, int Size, int RowNu
 	delete [] pReceiveNum;
 }
 
-void SerailResultCalculation(double* pMatrix, double* pVector, double* pResult, int Size){
+void SerailResultCalculation(double* pMatrix, double* pVector, double* pResult, int ro, int col){
 	int i, j;
-	for(i=0; i<Size;i++){
+	for(i=0; i<col;i++){
 		pResult[i]=0;
-		for(j=0;j<Size;j++){
-			pResult[i] += pMatrix[i*Size+j]*pVector[j];
+		for(j=0;j<ro;j++){
+			pResult[i] += pMatrix[j*col+i]*pVector[j];
 		}
 	}
 }
 
-void ParallelResultCalculation(double* pProcRows, double* pVector, double* pProcResult, int Size, int RowNum){
+void ParallelResultCalculation(double* pProcRows, double* pVector, double* pProcResult, int ro, int col, int RowNum){
 	int i, j;
 	for(i=0; i<RowNum; i++){
 		pProcResult[i] = 0;
-		for(j=0;j<Size;j++){
-			pProcResult[i] += pProcRows[i*Size +j]*pVector[j];
+		for(j=0;j<col;j++){
+			pProcResult[i] += pProcRows[j*col +i]*pVector[j];
 		}
 	}
 }
@@ -172,14 +174,15 @@ void TestDistribution(double* pMatrix, double* pVector, double* pProcRows, int S
 	MPI_Barrier(MPI_COMM_WORLD);
 }
 
-void TestResult(double* pMatrix, double* pVector, double* pResult, int Size){
+void TestResult(double* pMatrix, double* pVector, double* pResult, int ro, int col){
 	double* pSerialResult;
 	int equal = 0;
 	int i;
 	if(ProcRank==0){
-		pSerialResult = new double[Size];
-		SerailResultCalculation(pMatrix, pVector, pSerialResult, Size);
-		for(i=0; i<Size; i++){
+		pSerialResult = new double[col];
+		pSerialResult = pResult;
+		SerailResultCalculation(pMatrix, pVector, pSerialResult, ro, col);
+		for(i=0; i<ro; i++){
 			if(pResult[i]!=pSerialResult[i]){
 				equal=1;
 			}
@@ -199,9 +202,9 @@ void ProcessTermination(double* pMatrix,double* pVector, double* pResult, double
 	}
 }
 
-int main(int argc, char *argv[])
+int main(int argc, char *args[])
 {
-	int RowNum, Size;
+	int RowNum, Size, ro, col;
 	time_t start, finish;
 	double duration;
 
@@ -211,7 +214,18 @@ int main(int argc, char *argv[])
 	double* pProcRows;
 	double* pProcResult;
 
-	MPI_Init(&argc, &argv);
+	if(ProcRank==0){
+		if(argc == 3){
+			ro = atoi(args[1]);//printf("%d\n",ro);
+			col = atoi(args[2]);//printf("%d\n",col );
+		}
+		else{
+			printf("Please provide row and columns\n");
+			return -1;
+		}
+	}
+
+	MPI_Init(&argc, &args);
 	MPI_Comm_size(MPI_COMM_WORLD, &ProcNum);
 	MPI_Comm_rank(MPI_COMM_WORLD, &ProcRank);
 
@@ -219,21 +233,21 @@ int main(int argc, char *argv[])
 		printf("Parallel matrix-vector multiplication program\n");
 	}
 
-	ProcessInitialization(pMatrix, pVector, pResult, pProcRows, pProcResult, Size, RowNum);
+	ProcessInitialization(pMatrix, pVector, pResult, pProcRows, pProcResult, ro, col, RowNum);
 
 	start = MPI_Wtime();
 
-	DataDistribution(pMatrix, pProcRows, pVector, Size, RowNum);
+	DataDistribution(pMatrix, pProcRows, pVector, ro, col, RowNum);
 
-	ParallelResultCalculation(pProcRows, pVector, pProcResult, Size, RowNum);
+	ParallelResultCalculation(pProcRows, pVector, pProcResult, ro, col, RowNum);
 
-	ResultReplication(pProcResult, pResult, Size, RowNum);
+	ResultReplication(pProcResult, pResult, ro, col, RowNum);
 
 	finish = MPI_Wtime();
 
 	duration = finish-start;
 
-	TestResult(pMatrix, pVector, pResult, Size);
+	TestResult(pMatrix, pVector, pResult, ro, col);
 
 	if(ProcRank==0){
 		printf("Time of Execution = %f\n", duration);
